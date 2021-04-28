@@ -3,12 +3,14 @@ import manageQualifications, {
   addEventListenerForAddSubject,
   rowMarkup,
   addSubject,
+  renumberRow,
+  renumberRows,
   insertDeleteButton,
   onDelete,
   DELETE_BUTTON_CLASSNAME,
   FIELDSET_CLASSNAME,
   ROW_CLASS,
-  SUBJECT_LINK_ID, renumberRemainingRows,
+  SUBJECT_LINK_ID,
 } from './manageQualifications';
 
 describe('manageQualifications', () => {
@@ -67,7 +69,7 @@ describe('manageQualifications', () => {
 
     test('renumbers row, discarding values and errors', () => {
       const renumberRowSpy = jest.spyOn(manageQualifications, 'renumberRow');
-      expect(renumberRowSpy).toHaveBeenCalledWith(rowMarkup(), document.getElementsByClassName(ROW_CLASS).length, false);
+      expect(renumberRowSpy).toHaveBeenCalledWith(rowMarkup(), document.getElementsByClassName(ROW_CLASS).length, true);
     });
 
     test('adds a delete button', () => {
@@ -112,7 +114,9 @@ describe('manageQualifications', () => {
   });
 
   describe('onDelete', () => {
-    manageQualifications.renumberRemainingRows = jest.fn();
+    manageQualifications.renumberRows = jest.fn();
+    const renumberRowsSpy = jest.spyOn(manageQualifications, 'renumberRows');
+
     const initialNumberOfRows = document.getElementsByClassName(ROW_CLASS).length;
     const rowNumberToDelete = '2';
 
@@ -124,21 +128,36 @@ describe('manageQualifications', () => {
       expect(document.getElementsByClassName(ROW_CLASS).length).toBe(initialNumberOfRows - 1);
     });
 
-    test('renumbers the rows after the deleted row', () => {
-      const renumberRemainingRowsSpy = jest.spyOn(manageQualifications, 'renumberRemainingRows');
-      expect(renumberRemainingRowsSpy).toHaveBeenCalledWith(rowNumberToDelete);
+    test('renumbers the rows', () => {
+      expect(renumberRowsSpy).toHaveBeenCalledTimes(2);
     });
   });
 
-  describe('renumberRemainingRows', () => {
+  describe('renumber rows', () => {
     manageQualifications.renumberRow = jest.fn();
     const renumberRowSpy = jest.spyOn(manageQualifications, 'renumberRow');
 
-    test('renumbers the rows after the deleted row, keeping the values and errors', () => {
-      const rows = document.getElementsByClassName(ROW_CLASS);
-      renumberRemainingRows(2);
-      expect(renumberRowSpy).toHaveBeenCalledWith(rows[2], 3, true);
-      expect(renumberRowSpy).toHaveBeenCalledWith(rows[3], 4, true);
+    beforeEach(() => {
+      renumberRows();
+    });
+
+    test('renumbers all rows', () => {
+      expect(renumberRowSpy).toHaveBeenCalledTimes(8);
+    });
+  });
+
+  describe('renumber row', () => {
+    manageQualifications.renumberCell = jest.fn();
+    const renumberCellSpy = jest.spyOn(manageQualifications, 'renumberCell');
+
+    const row = document.getElementsByClassName(FIELDSET_CLASSNAME)[0];
+
+    beforeEach(() => {
+      renumberRow(row, 3, true);
+    });
+
+    test('renumbers all cells', () => {
+      expect(renumberCellSpy).toHaveBeenCalledTimes(11);
     });
   });
 });

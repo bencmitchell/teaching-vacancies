@@ -32,7 +32,7 @@ export const addSubject = () => {
   document.getElementsByClassName(FIELDSET_CLASSNAME)[0].appendChild(newRow);
   const numberRows = rows().length;
   manageQualifications.insertDeleteButton(newRow, numberRows);
-  manageQualifications.renumberRow(newRow, numberRows, false);
+  manageQualifications.renumberRow(newRow, numberRows, true);
   newRow.querySelector(GOVUK_INPUT_SELECTOR).focus();
 };
 
@@ -53,42 +53,32 @@ export const addDeletionEventListener = (el) => {
 
 export const onDelete = (eventTarget) => {
   eventTarget.parentNode.remove();
-  manageQualifications.renumberRemainingRows(eventTarget.id.replace(/\D/g, ''));
+  manageQualifications.renumberRows();
 };
 
-export const renumberRemainingRows = (numberOfDeletedRow) => {
-  Array.from(manageQualifications.rows()).forEach((row, index) => {
-    if (index >= numberOfDeletedRow - 1) {
-      manageQualifications.renumberRow(row, index + 1, true);
+export const renumberRows = () => Array.from(manageQualifications.rows()).forEach((row, index) => manageQualifications.renumberRow(row, index + 1));
+
+export const renumberRow = (row, newNumber, clearValues) => {
+  Array.from(row.children).forEach((column) => Array.from(column.children).forEach((cellEl) => {
+    manageQualifications.renumberCell(cellEl, newNumber, clearValues);
+  }));
+};
+
+export const renumberCell = (renumberEl, newNumber, clearValues) => {
+  renumberEl.innerHTML = renumberEl.innerHTML.replace(/\d+/g, `${newNumber}`);
+
+  Array.from(renumberEl.attributes).forEach((attribute) => {
+    if (clearValues) {
+      if (renumberEl.parentNode.querySelector(GOVUK_ERROR_MESSAGE_SELECTOR)) {
+        manageQualifications.removeErrors(renumberEl.parentNode);
+      }
+
+      renumberEl.removeAttribute('value');
+      renumberEl.removeAttribute('aria-required');
     }
+
+    renumberEl.setAttribute(attribute.name, attribute.value.replace(/\d+/g, `${newNumber}`));
   });
-};
-
-export const renumberRow = (row, newNumber, keepValuesAndErrors) => {
-  Array.from(row.children).forEach((column) => manageQualifications.renumberColumn(column, newNumber, keepValuesAndErrors));
-};
-
-export const renumberColumn = (column, newNumber, keepValuesAndErrors) => {
-  // Directly modify attributes?
-  let input = column.querySelector(GOVUK_INPUT_SELECTOR);
-  let inputValue;
-  if (input && keepValuesAndErrors) {
-    inputValue = input.value;
-  }
-  column.id = column.id.replace(/\d+/g, `${newNumber}`);
-  column.innerHTML = column.innerHTML.replace(/\d+/g, `${newNumber}`);
-  if (!keepValuesAndErrors && column.querySelector(GOVUK_ERROR_MESSAGE_SELECTOR)) {
-    manageQualifications.removeErrors(column);
-  }
-  input = column.querySelector(GOVUK_INPUT_SELECTOR);
-  if (input) {
-    if (inputValue && keepValuesAndErrors) {
-      input.value = inputValue;
-    } else {
-      input.removeAttribute('value');
-      input.removeAttribute('aria-required');
-    }
-  }
 };
 
 export const removeErrors = (column) => {
@@ -106,8 +96,8 @@ const manageQualifications = {
   insertDeleteButton,
   onDelete,
   removeErrors,
-  renumberColumn,
-  renumberRemainingRows,
+  renumberCell,
+  renumberRows,
   renumberRow,
   rows,
   DELETE_BUTTON_CLASSNAME,
